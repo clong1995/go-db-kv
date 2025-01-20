@@ -22,7 +22,7 @@ func Set(key, value []byte) (err error) {
 	return
 }
 
-func SetInt(key []byte, value int) (err error) {
+func SetInt(key string, value int) (err error) {
 	d := int64(value)
 	if err = SetInt64(key, d); err != nil {
 		log.Println(err)
@@ -31,22 +31,21 @@ func SetInt(key []byte, value int) (err error) {
 	return
 }
 
-func SetInt64(key []byte, value int64) (err error) {
+func SetInt64(key string, value int64) (err error) {
 	var buf bytes.Buffer
 	if err = binary.Write(&buf, binary.BigEndian, value); err != nil {
 		log.Println(err)
 		return
 	}
-	if err = Set(key, buf.Bytes()); err != nil {
+	if err = Set([]byte(key), buf.Bytes()); err != nil {
 		log.Println(err)
 		return
 	}
 	return
 }
 
-func SetString(key []byte, value string) (err error) {
-	err = Set(key, []byte(value))
-	if err != nil {
+func SetString(key string, value string) (err error) {
+	if err = Set([]byte(key), []byte(value)); err != nil {
 		return err
 	}
 	return
@@ -67,30 +66,30 @@ func SetTtl(key, value []byte, ttl int) (err error) {
 	return
 }
 
-func SetIntTtl(key int, value []byte, ttl int) (err error) {
-	d := int64(key)
-	if err = SetInt64Ttl(d, value, ttl); err != nil {
+func SetIntTtl(key string, value int, ttl int) (err error) {
+	d := int64(value)
+	if err = SetInt64Ttl(key, d, ttl); err != nil {
 		log.Println(err)
 		return
 	}
 	return
 }
 
-func SetInt64Ttl(key int64, value []byte, ttl int) (err error) {
+func SetInt64Ttl(key string, value int64, ttl int) (err error) {
 	var buf bytes.Buffer
-	if err = binary.Write(&buf, binary.BigEndian, key); err != nil {
+	if err = binary.Write(&buf, binary.BigEndian, value); err != nil {
 		log.Println(err)
 		return
 	}
-	if err = SetTtl(buf.Bytes(), value, ttl); err != nil {
+	if err = SetTtl([]byte(key), buf.Bytes(), ttl); err != nil {
 		log.Println(err)
 		return
 	}
 	return
 }
 
-func SetStringTtl(key string, value []byte, ttl int) (err error) {
-	if err = SetTtl([]byte(key), value, ttl); err != nil {
+func SetStringTtl(key, value string, ttl int) (err error) {
+	if err = SetTtl([]byte(key), []byte(value), ttl); err != nil {
 		log.Println(err)
 		return
 	}

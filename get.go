@@ -23,7 +23,7 @@ func Get(key []byte) (value []byte, err error) {
 	return
 }
 
-func GetInt(key []byte) (value int, err error) {
+func GetInt(key string) (value int, err error) {
 	i, err := GetInt64(key)
 	if err != nil {
 		log.Println(err)
@@ -33,8 +33,8 @@ func GetInt(key []byte) (value int, err error) {
 	return
 }
 
-func GetInt64(key []byte) (value int64, err error) {
-	d, err := Get(key)
+func GetInt64(key string) (value int64, err error) {
+	d, err := Get([]byte(key))
 	if err != nil {
 		log.Println(err)
 		return
@@ -47,8 +47,8 @@ func GetInt64(key []byte) (value int64, err error) {
 	return
 }
 
-func GetString(key []byte) (value string, err error) {
-	d, err := Get(key)
+func GetString(key string) (value string, err error) {
+	d, err := Get([]byte(key))
 	if err != nil {
 		log.Println(err)
 		return
@@ -76,7 +76,7 @@ func GetTtl(key []byte, ttl int) (value []byte, err error) {
 	return
 }
 
-func GetIntTtl(key []byte, ttl int) (value int, err error) {
+func GetIntTtl(key string, ttl int) (value int, err error) {
 	d, err := GetInt64Ttl(key, ttl)
 	if err != nil {
 		log.Println(err)
@@ -86,8 +86,8 @@ func GetIntTtl(key []byte, ttl int) (value int, err error) {
 	return
 }
 
-func GetInt64Ttl(key []byte, ttl int) (value int64, err error) {
-	d, err := GetTtl(key, ttl)
+func GetInt64Ttl(key string, ttl int) (value int64, err error) {
+	d, err := GetTtl([]byte(key), ttl)
 	if err != nil {
 		log.Println(err)
 		return
@@ -100,8 +100,8 @@ func GetInt64Ttl(key []byte, ttl int) (value int64, err error) {
 	return
 }
 
-func GetStringTtl(key []byte, ttl int) (value string, err error) {
-	d, err := GetTtl(key, ttl)
+func GetStringTtl(key string, ttl int) (value string, err error) {
+	d, err := GetTtl([]byte(key), ttl)
 	if err != nil {
 		log.Println(err)
 		return
