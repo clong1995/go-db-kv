@@ -9,11 +9,9 @@ import (
 	"time"
 )
 
-var ErrKeyNotFound = errors.New("key not found")
-
-func Get(key []byte) (value []byte, err error) {
+func Get(key []byte) (value []byte, exist bool, err error) {
 	if err = db.View(func(txn *badger.Txn) (err error) {
-		if value, err = get(key, txn); err != nil {
+		if value, exist, err = get(key, txn); err != nil {
 			log.Println(err)
 			return
 		}
@@ -25,8 +23,8 @@ func Get(key []byte) (value []byte, err error) {
 	return
 }
 
-func GetInt(key string) (value int, err error) {
-	i, err := GetInt64(key)
+func GetInt(key string) (value int, exist bool, err error) {
+	i, exist, err := GetInt64(key)
 	if err != nil {
 		log.Println(err)
 		return
@@ -35,8 +33,8 @@ func GetInt(key string) (value int, err error) {
 	return
 }
 
-func GetInt64(key string) (value int64, err error) {
-	d, err := Get([]byte(key))
+func GetInt64(key string) (value int64, exist bool, err error) {
+	d, exist, err := Get([]byte(key))
 	if err != nil {
 		log.Println(err)
 		return
@@ -49,8 +47,8 @@ func GetInt64(key string) (value int64, err error) {
 	return
 }
 
-func GetString(key string) (value string, err error) {
-	d, err := Get([]byte(key))
+func GetString(key string) (value string, exist bool, err error) {
+	d, exist, err := Get([]byte(key))
 	if err != nil {
 		log.Println(err)
 		return
@@ -59,9 +57,9 @@ func GetString(key string) (value string, err error) {
 	return
 }
 
-func GetTtl(key []byte, ttl int) (value []byte, err error) {
+func GetTtl(key []byte, ttl int) (value []byte, exist bool, err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
-		if value, err = get(key, txn); err != nil {
+		if value, exist, err = get(key, txn); err != nil {
 			log.Println(err)
 			return
 		}
@@ -78,8 +76,8 @@ func GetTtl(key []byte, ttl int) (value []byte, err error) {
 	return
 }
 
-func GetIntTtl(key string, ttl int) (value int, err error) {
-	d, err := GetInt64Ttl(key, ttl)
+func GetIntTtl(key string, ttl int) (value int, exist bool, err error) {
+	d, exist, err := GetInt64Ttl(key, ttl)
 	if err != nil {
 		log.Println(err)
 		return
@@ -88,8 +86,8 @@ func GetIntTtl(key string, ttl int) (value int, err error) {
 	return
 }
 
-func GetInt64Ttl(key string, ttl int) (value int64, err error) {
-	d, err := GetTtl([]byte(key), ttl)
+func GetInt64Ttl(key string, ttl int) (value int64, exist bool, err error) {
+	d, exist, err := GetTtl([]byte(key), ttl)
 	if err != nil {
 		log.Println(err)
 		return
@@ -102,8 +100,8 @@ func GetInt64Ttl(key string, ttl int) (value int64, err error) {
 	return
 }
 
-func GetStringTtl(key string, ttl int) (value string, err error) {
-	d, err := GetTtl([]byte(key), ttl)
+func GetStringTtl(key string, ttl int) (value string, exist bool, err error) {
+	d, exist, err := GetTtl([]byte(key), ttl)
 	if err != nil {
 		log.Println(err)
 		return
@@ -112,16 +110,18 @@ func GetStringTtl(key string, ttl int) (value string, err error) {
 	return
 }
 
-func get(key []byte, txn *badger.Txn) (value []byte, err error) {
+func get(key []byte, txn *badger.Txn) (value []byte, exist bool, err error) {
 	item, err := txn.Get(key)
 	if errors.Is(err, badger.ErrKeyNotFound) {
-		err = ErrKeyNotFound
+		err = nil
+		exist = false
 		return
 	}
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	exist = true
 	if value, err = item.ValueCopy(nil); err != nil {
 		log.Println(err)
 		return
