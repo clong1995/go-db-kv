@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var ErrKeyNotFound = errors.New("key not found")
+
 func Get(key []byte) (value []byte, err error) {
 	if err = db.View(func(txn *badger.Txn) (err error) {
 		if value, err = get(key, txn); err != nil {
@@ -113,7 +115,7 @@ func GetStringTtl(key string, ttl int) (value string, err error) {
 func get(key []byte, txn *badger.Txn) (value []byte, err error) {
 	item, err := txn.Get(key)
 	if errors.Is(err, badger.ErrKeyNotFound) {
-		err = nil
+		err = ErrKeyNotFound
 		return
 	}
 	if err != nil {
