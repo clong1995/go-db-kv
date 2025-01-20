@@ -1,7 +1,9 @@
 package kv
 
 import (
+	"encoding/binary"
 	"errors"
+	"github.com/cespare/xxhash/v2"
 	"github.com/dgraph-io/badger/v4"
 	"log"
 	"time"
@@ -149,7 +151,7 @@ func Storage[T any](key string, fn func() (value T, err error)) (value T, err er
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		var exists bool
 		var bytes []byte
-		k := []byte(key)
+		k := Key(key)
 		if bytes, exists, err = get(k, txn); err != nil {
 			log.Println(err)
 			return
@@ -189,7 +191,7 @@ func StorageTtl[T any](key string, second int, fn func() (value T, err error)) (
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		var exists bool
 		var bytes []byte
-		k := []byte(key)
+		k := Key(key)
 		if bytes, exists, err = get(k, txn); err != nil {
 			log.Println(err)
 			return
@@ -222,5 +224,53 @@ func StorageTtl[T any](key string, second int, fn func() (value T, err error)) (
 		log.Println(err)
 		return
 	}
+	return
+}
+
+func StorageTtlDiscord[T any](key string, second int, fn func() (value T, err error)) (value T, err error) {
+	if err = db.Update(func(txn *badger.Txn) (err error) {
+		var exists bool
+		var bytes []byte
+		k := Key(key)
+		if bytes, exists, err = get(k, txn); err != nil {
+			log.Println(err)
+			return
+		}
+
+		if exists {
+			if value, err = deserialize[T](bytes); err != nil {
+				log.Println(err)
+				return
+			}
+			return
+		}
+
+		if value, err = fn(); err != nil {
+			log.Println(err)
+			return
+		}
+
+		if bytes, err = serialize[T](value); err != nil {
+			log.Println(err)
+			return
+		}
+
+		entry := badger.NewEntry(k, bytes).WithTTL(time.Duration(second) * time.Second)
+		if err = txn.SetEntry(entry); err != nil {
+			log.Println(err)
+			return
+		}
+		return
+	}); err != nil {
+		log.Println(err)
+		return
+	}
+	return
+}
+
+func Key(text string) (buf []byte) {
+	n := xxhash.Sum64String(text)
+	buf = make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, n)
 	return
 }
