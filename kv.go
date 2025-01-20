@@ -17,7 +17,7 @@ func Set[T any](key string, value T) (err error) {
 	return
 }
 
-func SetTtl[T any](key string, value T, second int) (err error) {
+func SetTtl[T any](key string, value T, millisecond int) (err error) {
 	bytes, err := serialize[T](value)
 	if err != nil {
 		log.Println(err)
@@ -25,8 +25,8 @@ func SetTtl[T any](key string, value T, second int) (err error) {
 	}
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		entry := badger.NewEntry([]byte(key), bytes)
-		if second > 0 {
-			entry.WithTTL(time.Duration(second) * time.Second)
+		if millisecond > 0 {
+			entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
 		}
 		if err = txn.SetEntry(entry); err != nil {
 			log.Println(err)
@@ -48,12 +48,12 @@ func SetKey(key string) (err error) {
 	return
 }
 
-func SetKeyTtl(key string, second int) (err error) {
+func SetKeyTtl(key string, millisecond int) (err error) {
 	bytes := make([]byte, 0)
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		entry := badger.NewEntry([]byte(key), bytes)
-		if second > 0 {
-			entry.WithTTL(time.Duration(second) * time.Second)
+		if millisecond > 0 {
+			entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
 		}
 		if err = txn.SetEntry(entry); err != nil {
 			log.Println(err)
@@ -75,7 +75,7 @@ func Exists(key string) (exists bool, err error) {
 	return
 }
 
-func ExistsTtl(key string, second int) (exists bool, err error) {
+func ExistsTtl(key string, millisecond int) (exists bool, err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		k := []byte(key)
 		if _, err = txn.Get(k); errors.Is(err, badger.ErrKeyNotFound) {
@@ -88,8 +88,8 @@ func ExistsTtl(key string, second int) (exists bool, err error) {
 		}
 		bytes := make([]byte, 0)
 		entry := badger.NewEntry(k, bytes)
-		if second > 0 {
-			entry.WithTTL(time.Duration(second) * time.Second)
+		if millisecond > 0 {
+			entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
 		}
 		if err = txn.SetEntry(entry); err != nil {
 			log.Println(err)
@@ -112,7 +112,7 @@ func ExistsSet(key string) (exists bool, err error) {
 	return
 }
 
-func ExistsSetTtl(key string, second int) (exists bool, err error) {
+func ExistsSetTtl(key string, millisecond int) (exists bool, err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		k := []byte(key)
 		var keyNotFound bool
@@ -128,8 +128,8 @@ func ExistsSetTtl(key string, second int) (exists bool, err error) {
 		if keyNotFound {
 			bytes := make([]byte, 0)
 			entry := badger.NewEntry(k, bytes)
-			if second > 0 {
-				entry.WithTTL(time.Duration(second) * time.Second)
+			if millisecond > 0 {
+				entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
 			}
 			if err = txn.SetEntry(entry); err != nil {
 				log.Println(err)
@@ -154,7 +154,7 @@ func Get[T any](key string) (value T, exists bool, err error) {
 	return
 }
 
-func GetTtl[T any](key string, second int) (value T, exists bool, err error) {
+func GetTtl[T any](key string, millisecond int) (value T, exists bool, err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		var bytes []byte
 		k := []byte(key)
@@ -171,8 +171,8 @@ func GetTtl[T any](key string, second int) (value T, exists bool, err error) {
 			return
 		}
 
-		if second > 0 {
-			entry := badger.NewEntry(k, bytes).WithTTL(time.Duration(second) * time.Second)
+		if millisecond > 0 {
+			entry := badger.NewEntry(k, bytes).WithTTL(time.Duration(millisecond) * time.Millisecond)
 			if err = txn.SetEntry(entry); err != nil {
 				log.Println(err)
 				return
@@ -241,7 +241,7 @@ func Storage[T any](key string, fn func() (value T, err error)) (value T, err er
 	return
 }
 
-func StorageTtl[T any](key string, fn func() (value T, err error), second int) (value T, err error) {
+func StorageTtl[T any](key string, fn func() (value T, err error), millisecond int) (value T, err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		var exists bool
 		var bytes []byte
@@ -268,8 +268,8 @@ func StorageTtl[T any](key string, fn func() (value T, err error), second int) (
 			}
 		}
 
-		if second > 0 {
-			entry := badger.NewEntry(k, bytes).WithTTL(time.Duration(second) * time.Second)
+		if millisecond > 0 {
+			entry := badger.NewEntry(k, bytes).WithTTL(time.Duration(millisecond) * time.Millisecond)
 			if err = txn.SetEntry(entry); err != nil {
 				log.Println(err)
 				return
@@ -283,7 +283,7 @@ func StorageTtl[T any](key string, fn func() (value T, err error), second int) (
 	return
 }
 
-func StorageTtlDiscord[T any](key string, fn func() (value T, err error), second int) (value T, err error) {
+func StorageTtlDiscord[T any](key string, fn func() (value T, err error), millisecond int) (value T, err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		var exists bool
 		var bytes []byte
@@ -311,7 +311,7 @@ func StorageTtlDiscord[T any](key string, fn func() (value T, err error), second
 			return
 		}
 
-		entry := badger.NewEntry(k, bytes).WithTTL(time.Duration(second) * time.Second)
+		entry := badger.NewEntry(k, bytes).WithTTL(time.Duration(millisecond) * time.Millisecond)
 		if err = txn.SetEntry(entry); err != nil {
 			log.Println(err)
 			return
