@@ -65,7 +65,6 @@ func TestDrop(t *testing.T) {
 func TestGet(t *testing.T) {
 	type args struct {
 		key []byte
-		ttl int
 	}
 	tests := []struct {
 		name      string
@@ -82,7 +81,7 @@ func TestGet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotValue, err := Get(tt.args.key, tt.args.ttl)
+			gotValue, err := Get(tt.args.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -113,7 +112,7 @@ func TestSet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Set(tt.args.key, tt.args.value, tt.args.ttl); (err != nil) != tt.wantErr {
+			if err := Set(tt.args.key, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("Set() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

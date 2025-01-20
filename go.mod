@@ -5,7 +5,7 @@ go 1.23.3
 toolchain go1.23.4
 
 require (
-	github.com/clong1995/go-config v0.0.0-20250114015825-8e2d6920f1aa
+	github.com/clong1995/go-config v0.0.0-20250120061023-1d1199653e4d
 	github.com/dgraph-io/badger/v4 v4.5.0
 )
 

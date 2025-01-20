@@ -1,6 +1,7 @@
 package kv
 
 import (
+	"errors"
 	"github.com/clong1995/go-config"
 	"github.com/dgraph-io/badger/v4"
 	"log"
@@ -53,6 +54,10 @@ func GetTtl(key []byte, ttl int) (value []byte, err error) {
 
 func get(key []byte, txn *badger.Txn) (value []byte, err error) {
 	item, err := txn.Get(key)
+	if errors.Is(err, badger.ErrKeyNotFound) {
+		err = nil
+		return
+	}
 	if err != nil {
 		log.Println(err)
 		return
