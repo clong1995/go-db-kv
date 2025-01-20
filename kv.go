@@ -18,34 +18,35 @@ func init() {
 	}
 }
 
-func Get(key []byte, ttl int) (value []byte, err error) {
-	if ttl > 0 {
-		if err = db.Update(func(txn *badger.Txn) (err error) {
-			if value, err = get(key, txn); err != nil {
-				log.Println(err)
-				return
-			}
-			entry := badger.NewEntry(key, value).WithTTL(time.Duration(ttl) * time.Second)
-			if err = txn.SetEntry(entry); err != nil {
-				log.Println(err)
-				return
-			}
-			return
-		}); err != nil {
+func Get(key []byte) (value []byte, err error) {
+	if err = db.View(func(txn *badger.Txn) (err error) {
+		if value, err = get(key, txn); err != nil {
 			log.Println(err)
 			return
 		}
-	} else {
-		if err = db.View(func(txn *badger.Txn) (err error) {
-			if value, err = get(key, txn); err != nil {
-				log.Println(err)
-				return
-			}
-			return
-		}); err != nil {
+		return
+	}); err != nil {
+		log.Println(err)
+		return
+	}
+	return
+}
+
+func GetTtl(key []byte, ttl int) (value []byte, err error) {
+	if err = db.Update(func(txn *badger.Txn) (err error) {
+		if value, err = get(key, txn); err != nil {
 			log.Println(err)
 			return
 		}
+		entry := badger.NewEntry(key, value).WithTTL(time.Duration(ttl) * time.Second)
+		if err = txn.SetEntry(entry); err != nil {
+			log.Println(err)
+			return
+		}
+		return
+	}); err != nil {
+		log.Println(err)
+		return
 	}
 	return
 }
@@ -63,12 +64,24 @@ func get(key []byte, txn *badger.Txn) (value []byte, err error) {
 	return
 }
 
-func Set(key, value []byte, ttl int) (err error) {
+func Set(key, value []byte) (err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		entry := badger.NewEntry(key, value)
-		if ttl > 0 {
-			entry.WithTTL(time.Duration(ttl) * time.Second)
+		if err = txn.SetEntry(entry); err != nil {
+			log.Println(err)
+			return
 		}
+		return
+	}); err != nil {
+		log.Println(err)
+		return
+	}
+	return
+}
+
+func SetTtl(key, value []byte, ttl int) (err error) {
+	if err = db.Update(func(txn *badger.Txn) (err error) {
+		entry := badger.NewEntry(key, value).WithTTL(time.Duration(ttl) * time.Second)
 		if err = txn.SetEntry(entry); err != nil {
 			log.Println(err)
 			return
