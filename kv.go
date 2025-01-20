@@ -68,19 +68,7 @@ func SetKeyTtl(key string, second int) (err error) {
 }
 
 func Exists(key string) (exists bool, err error) {
-	if err = db.View(func(txn *badger.Txn) (err error) {
-		_, err = txn.Get([]byte(key))
-		if errors.Is(err, badger.ErrKeyNotFound) {
-			err = nil
-			return
-		}
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		exists = true
-		return
-	}); err != nil {
+	if exists, err = ExistsTtl(key, 0); err != nil {
 		log.Println(err)
 		return
 	}
@@ -99,9 +87,54 @@ func ExistsTtl(key string, second int) (exists bool, err error) {
 			return
 		}
 		bytes := make([]byte, 0)
-		entry := badger.NewEntry(k, bytes).WithTTL(time.Duration(second) * time.Second)
+		entry := badger.NewEntry(k, bytes)
+		if second > 0 {
+			entry.WithTTL(time.Duration(second) * time.Second)
+		}
 		if err = txn.SetEntry(entry); err != nil {
 			log.Println(err)
+			return
+		}
+		exists = true
+		return
+	}); err != nil {
+		log.Println(err)
+		return
+	}
+	return
+}
+
+func ExistsSet(key string) (exists bool, err error) {
+	if exists, err = ExistsSetTtl(key, 0); err != nil {
+		log.Println(err)
+		return
+	}
+	return
+}
+
+func ExistsSetTtl(key string, second int) (exists bool, err error) {
+	if err = db.Update(func(txn *badger.Txn) (err error) {
+		k := []byte(key)
+		var keyNotFound bool
+		if _, err = txn.Get(k); errors.Is(err, badger.ErrKeyNotFound) {
+			keyNotFound = true
+			err = nil
+		}
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		if keyNotFound {
+			bytes := make([]byte, 0)
+			entry := badger.NewEntry(k, bytes)
+			if second > 0 {
+				entry.WithTTL(time.Duration(second) * time.Second)
+			}
+			if err = txn.SetEntry(entry); err != nil {
+				log.Println(err)
+				return
+			}
 			return
 		}
 		exists = true
