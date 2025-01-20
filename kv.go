@@ -325,3 +325,9 @@ func HashKey(text string) (buf []byte) {
 	binary.BigEndian.PutUint64(buf, n)
 	return
 }
+
+func IntKey(n int64) (buf []byte) {
+	buf = make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(n))
+	return
+}
