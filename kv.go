@@ -167,13 +167,13 @@ func GetTtl[T any](key []byte, millisecond int) (value T, exists bool, err error
 			log.Println(err)
 			return
 		}
-
+		entry := badger.NewEntry(key, bytes)
 		if millisecond > 0 {
-			entry := badger.NewEntry(key, bytes).WithTTL(time.Duration(millisecond) * time.Millisecond)
-			if err = txn.SetEntry(entry); err != nil {
-				log.Println(err)
-				return
-			}
+			entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
+		}
+		if err = txn.SetEntry(entry); err != nil {
+			log.Println(err)
+			return
 		}
 
 		return
@@ -264,12 +264,13 @@ func StorageTtl[T any](key []byte, fn func() (value T, err error), millisecond i
 			}
 		}
 
+		entry := badger.NewEntry(key, bytes)
 		if millisecond > 0 {
-			entry := badger.NewEntry(key, bytes).WithTTL(time.Duration(millisecond) * time.Millisecond)
-			if err = txn.SetEntry(entry); err != nil {
-				log.Println(err)
-				return
-			}
+			entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
+		}
+		if err = txn.SetEntry(entry); err != nil {
+			log.Println(err)
+			return
 		}
 		return
 	}); err != nil {
