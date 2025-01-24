@@ -73,7 +73,7 @@ func TestGet(t *testing.T) {
 		wantErr   bool
 	}{
 		{
-			name: "get",
+			name: "exists",
 			args: args{
 				key: []byte("key"),
 			},
@@ -86,7 +86,7 @@ func TestGet(t *testing.T) {
 				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			t.Logf("Get() gotValue = %s", gotValue)
+			t.Logf("Get() gotValue = %v", gotValue)
 		})
 	}
 }
