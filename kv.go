@@ -107,16 +107,17 @@ func ExistsTtl(key []byte, millisecond int) (exists bool, err error) {
 	return
 }
 
-func ExistsSet(key []byte) (exists bool, err error) {
-	if exists, err = ExistsSetTtl(key, 0); err != nil {
+// ExistsKeySet 检查key是否存在，不存在则并设置
+func ExistsKeySet(key []byte) (exists bool, err error) {
+	if exists, err = ExistsKeySetTtl(key, 0); err != nil {
 		log.Println(err)
 		return
 	}
 	return
 }
 
-// ExistsSetTtl 检查是否存在，不存则设置，并续期
-func ExistsSetTtl(key []byte, millisecond int) (exists bool, err error) {
+// ExistsKeySetTtl 检查key是否存在，不存则设置，并续期
+func ExistsKeySetTtl(key []byte, millisecond int) (exists bool, err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		var keyNotFound bool
 		if _, err = txn.Get(key); errors.Is(err, badger.ErrKeyNotFound) {
@@ -270,19 +271,22 @@ func StorageTtl[T any](key []byte, fn func() (value T, err error), millisecond i
 			}
 		}
 
-		var entry *badger.Entry
-		if exists {
-			entry = badger.NewEntry(key, nil)
+		if exists { //存在
+			if millisecond > 0 { //且有生存时间
+				//则续期
+				entry := badger.NewEntry(key, nil)
+				entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
+				if err = txn.SetEntry(entry); err != nil {
+					log.Println(err)
+					return
+				}
+			}
 		} else {
-			entry = badger.NewEntry(key, bytes)
-		}
-
-		if millisecond > 0 {
-			entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
-		}
-		if err = txn.SetEntry(entry); err != nil {
-			log.Println(err)
-			return
+			entry := badger.NewEntry(key, bytes)
+			if err = txn.SetEntry(entry); err != nil {
+				log.Println(err)
+				return
+			}
 		}
 		return
 	}); err != nil {
