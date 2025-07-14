@@ -49,9 +49,10 @@ func SetKey(key []byte) (err error) {
 }
 
 func SetKeyTtl(key []byte, millisecond int) (err error) {
-	bytes := make([]byte, 0)
+	//bytes := make([]byte, 0)
 	if err = db.Update(func(txn *badger.Txn) (err error) {
-		entry := badger.NewEntry(key, bytes)
+		//entry := badger.NewEntry(key, bytes)
+		entry := badger.NewEntry(key, nil)
 		if millisecond > 0 {
 			entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
 		}
@@ -75,6 +76,7 @@ func Exists(key []byte) (exists bool, err error) {
 	return
 }
 
+// ExistsTtl 检查是否存在并续期
 func ExistsTtl(key []byte, millisecond int) (exists bool, err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		if _, err = txn.Get(key); errors.Is(err, badger.ErrKeyNotFound) {
@@ -85,15 +87,17 @@ func ExistsTtl(key []byte, millisecond int) (exists bool, err error) {
 			log.Println(err)
 			return
 		}
-		bytes := make([]byte, 0)
-		entry := badger.NewEntry(key, bytes)
+		//bytes := make([]byte, 0)
+		//entry := badger.NewEntry(key, bytes)
 		if millisecond > 0 {
+			entry := badger.NewEntry(key, nil)
 			entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
+			if err = txn.SetEntry(entry); err != nil {
+				log.Println(err)
+				return
+			}
 		}
-		if err = txn.SetEntry(entry); err != nil {
-			log.Println(err)
-			return
-		}
+
 		exists = true
 		return
 	}); err != nil {
@@ -103,15 +107,17 @@ func ExistsTtl(key []byte, millisecond int) (exists bool, err error) {
 	return
 }
 
-func ExistsSet(key []byte) (exists bool, err error) {
-	if exists, err = ExistsSetTtl(key, 0); err != nil {
+// ExistsKeySet 检查key是否存在，不存在则并设置
+func ExistsKeySet(key []byte) (exists bool, err error) {
+	if exists, err = ExistsKeySetTtl(key, 0); err != nil {
 		log.Println(err)
 		return
 	}
 	return
 }
 
-func ExistsSetTtl(key []byte, millisecond int) (exists bool, err error) {
+// ExistsKeySetTtl 检查key是否存在，不存则设置，并续期
+func ExistsKeySetTtl(key []byte, millisecond int) (exists bool, err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		var keyNotFound bool
 		if _, err = txn.Get(key); errors.Is(err, badger.ErrKeyNotFound) {
@@ -123,19 +129,19 @@ func ExistsSetTtl(key []byte, millisecond int) (exists bool, err error) {
 			return
 		}
 
-		if keyNotFound {
-			bytes := make([]byte, 0)
-			entry := badger.NewEntry(key, bytes)
-			if millisecond > 0 {
-				entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
-			}
-			if err = txn.SetEntry(entry); err != nil {
-				log.Println(err)
-				return
-			}
+		entry := badger.NewEntry(key, nil)
+		if millisecond > 0 {
+			entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
+		}
+		if err = txn.SetEntry(entry); err != nil {
+			log.Println(err)
 			return
 		}
-		exists = true
+
+		if !keyNotFound { //存在
+			exists = true
+		}
+
 		return
 	}); err != nil {
 		log.Println(err)
@@ -144,6 +150,7 @@ func ExistsSetTtl(key []byte, millisecond int) (exists bool, err error) {
 	return
 }
 
+// Get 获取值
 func Get[T any](key []byte) (value T, exists bool, err error) {
 	if value, exists, err = GetTtl[T](key, 0); err != nil {
 		log.Println(err)
@@ -152,6 +159,7 @@ func Get[T any](key []byte) (value T, exists bool, err error) {
 	return
 }
 
+// GetTtl 获取值并续期
 func GetTtl[T any](key []byte, millisecond int) (value T, exists bool, err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		var bytes []byte
@@ -169,7 +177,8 @@ func GetTtl[T any](key []byte, millisecond int) (value T, exists bool, err error
 		}
 
 		if millisecond > 0 {
-			entry := badger.NewEntry(key, bytes).WithTTL(time.Duration(millisecond) * time.Millisecond)
+			entry := badger.NewEntry(key, nil)
+			entry.WithTTL(time.Duration(millisecond) * time.Millisecond)
 			if err = txn.SetEntry(entry); err != nil {
 				log.Println(err)
 				return
@@ -204,7 +213,7 @@ func get(key []byte, txn *badger.Txn) (value []byte, exists bool, err error) {
 
 func Del(key []byte) (err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
-		if err = txn.Delete([]byte(key)); err != nil {
+		if err = txn.Delete(key); err != nil {
 			log.Println(err)
 			return
 		}
@@ -226,95 +235,6 @@ func Close() {
 func Drop() (err error) {
 	if err = db.DropAll(); err != nil {
 		log.Println(err)
-	}
-	return
-}
-
-func Storage[T any](key []byte, fn func() (value T, err error)) (value T, err error) {
-	if value, err = StorageTtl[T](key, fn, 0); err != nil {
-		log.Println(err)
-		return
-	}
-	return
-}
-
-func StorageTtl[T any](key []byte, fn func() (value T, err error), millisecond int) (value T, err error) {
-	if err = db.Update(func(txn *badger.Txn) (err error) {
-		var exists bool
-		var bytes []byte
-		if bytes, exists, err = get(key, txn); err != nil {
-			log.Println(err)
-			return
-		}
-
-		if exists {
-			if value, err = deserialize[T](bytes); err != nil {
-				log.Println(err)
-				return
-			}
-		} else {
-			if value, err = fn(); err != nil {
-				log.Println(err)
-				return
-			}
-
-			if bytes, err = serialize[T](value); err != nil {
-				log.Println(err)
-				return
-			}
-		}
-
-		if millisecond > 0 {
-			entry := badger.NewEntry(key, bytes).WithTTL(time.Duration(millisecond) * time.Millisecond)
-			if err = txn.SetEntry(entry); err != nil {
-				log.Println(err)
-				return
-			}
-		}
-		return
-	}); err != nil {
-		log.Println(err)
-		return
-	}
-	return
-}
-
-func StorageTtlDiscord[T any](key []byte, fn func() (value T, err error), millisecond int) (value T, err error) {
-	if err = db.Update(func(txn *badger.Txn) (err error) {
-		var exists bool
-		var bytes []byte
-		if bytes, exists, err = get(key, txn); err != nil {
-			log.Println(err)
-			return
-		}
-
-		if exists {
-			if value, err = deserialize[T](bytes); err != nil {
-				log.Println(err)
-				return
-			}
-			return
-		}
-
-		if value, err = fn(); err != nil {
-			log.Println(err)
-			return
-		}
-
-		if bytes, err = serialize[T](value); err != nil {
-			log.Println(err)
-			return
-		}
-
-		entry := badger.NewEntry(key, bytes).WithTTL(time.Duration(millisecond) * time.Millisecond)
-		if err = txn.SetEntry(entry); err != nil {
-			log.Println(err)
-			return
-		}
-		return
-	}); err != nil {
-		log.Println(err)
-		return
 	}
 	return
 }

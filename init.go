@@ -11,7 +11,8 @@ var db *badger.DB
 func init() {
 	cachePath := config.Value("CACHE PATH")
 	var err error
-	if db, err = badger.Open(badger.DefaultOptions(cachePath).WithInMemory(cachePath == "")); err != nil {
+	opt := badger.DefaultOptions(cachePath).WithInMemory(cachePath == "")
+	if db, err = badger.Open(opt); err != nil {
 		log.Panicln(err)
 		return
 	}
