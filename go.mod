@@ -1,11 +1,12 @@
 module github.com/clong1995/go-db-kv
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/clong1995/go-config v0.0.0-20250714045939-93f655c4ffa4
 	github.com/dgraph-io/badger/v4 v4.7.0
+	golang.org/x/sync v0.17.0
 )
 
 require (

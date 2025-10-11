@@ -1,9 +1,10 @@
 package kv
 
 import (
+	"log"
+
 	"github.com/clong1995/go-config"
 	"github.com/dgraph-io/badger/v4"
-	"log"
 )
 
 var db *badger.DB
