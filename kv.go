@@ -29,7 +29,6 @@ func Set[K, V any](key K, value V, ttl ...int64) (err error) {
 		entry := badger.NewEntry(k, v)
 		if ttl != nil && len(ttl) > 0 {
 			entry.WithTTL(time.Duration(ttl[0]) * time.Second)
-
 		}
 		if err = txn.SetEntry(entry); err != nil {
 			log.Println(err)
@@ -45,7 +44,7 @@ func Set[K, V any](key K, value V, ttl ...int64) (err error) {
 }
 
 // Get 获取值
-func Get[K, V any](key K) (value V, exists bool, err error) {
+func Get[K, V any](key K, ttl ...int64) (value V, exists bool, err error) {
 	k, err := serialize[K](key)
 	if err != nil {
 		log.Println(err)
@@ -67,6 +66,16 @@ func Get[K, V any](key K) (value V, exists bool, err error) {
 		}
 
 		if err = item.Value(func(val []byte) (err error) {
+			if ttl != nil && len(ttl) > 0 {
+				entry := badger.NewEntry(k, val).WithTTL(time.Duration(ttl[0]) * time.Second)
+				if err = txn.SetEntry(entry); err != nil {
+					log.Println(err)
+					return
+				}
+			}
+			if val == nil {
+				return
+			}
 			if value, err = deserialize[V](val); err != nil {
 				log.Println(err)
 				return
@@ -86,7 +95,6 @@ func Get[K, V any](key K) (value V, exists bool, err error) {
 
 // Del 删除
 func Del[K any](key K) (err error) {
-
 	k, err := serialize[K](key)
 	if err != nil {
 		log.Println(err)
@@ -107,7 +115,7 @@ func Del[K any](key K) (err error) {
 }
 
 // Exists 是否存在
-func Exists[K any](key K) (exists bool, err error) {
+func Exists[K any](key K, ttl ...int64) (exists bool, err error) {
 	k, err := serialize[K](key)
 	if err != nil {
 		log.Println(err)
@@ -116,7 +124,8 @@ func Exists[K any](key K) (exists bool, err error) {
 
 	exists = true
 	if err = db.View(func(txn *badger.Txn) (err error) {
-		if _, err = txn.Get(k); err != nil {
+		var item *badger.Item
+		if item, err = txn.Get(k); err != nil {
 			if errors.Is(err, badger.ErrKeyNotFound) {
 				err = nil
 				exists = false
@@ -124,6 +133,19 @@ func Exists[K any](key K) (exists bool, err error) {
 			}
 			log.Println(err)
 			return
+		}
+		if ttl != nil && len(ttl) > 0 {
+			if err = item.Value(func(val []byte) (err error) {
+				entry := badger.NewEntry(k, val).WithTTL(time.Duration(ttl[0]) * time.Second)
+				if err = txn.SetEntry(entry); err != nil {
+					log.Println(err)
+					return
+				}
+				return
+			}); err != nil {
+				log.Println(err)
+				return
+			}
 		}
 		return
 	}); err != nil {

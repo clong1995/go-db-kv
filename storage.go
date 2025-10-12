@@ -17,7 +17,7 @@ var sf singleflight.Group
 
 // Storage 存在返回不存在存储
 func Storage[K, V any](key K, fn func() (value V, err error), ttl ...int64) (value V, err error) {
-	value, exists, err := Get[K, V](key)
+	value, exists, err := Get[K, V](key, ttl...)
 	if err != nil {
 		log.Println(err)
 		return
@@ -29,7 +29,7 @@ func Storage[K, V any](key K, fn func() (value V, err error), ttl ...int64) (val
 
 	// 使用singleflight执行昂贵操作
 	result, err, _ := sf.Do(fmt.Sprintf("%#v", key), func() (value any, err error) {
-		if value, exists, err = Get[K, V](key); err != nil {
+		if value, exists, err = Get[K, V](key, ttl...); err != nil {
 			log.Println(err)
 			return
 		}
@@ -64,6 +64,7 @@ func Storage[K, V any](key K, fn func() (value V, err error), ttl ...int64) (val
 	value, ok := result.(V)
 	if !ok {
 		err = errors.New("type assertion failed")
+		log.Println(err)
 		return
 	}
 	return
