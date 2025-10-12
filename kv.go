@@ -18,7 +18,7 @@ func Set[K, V any](key K, value V, ttl ...int64) (err error) {
 		return
 	}
 	var v []byte
-	if value != nil {
+	if any(value) != nil {
 		if v, err = serialize[V](value); err != nil {
 			log.Println(err)
 			return
@@ -53,7 +53,10 @@ func Get[K, V any](key K, ttl ...int64) (value V, exists bool, err error) {
 
 	exists = true
 
-	if err = db.View(func(txn *badger.Txn) (err error) {
+	//有续期，则要读写
+	rw := ttl != nil && len(ttl) > 0
+
+	getFunc := func(txn *badger.Txn) (err error) {
 		var item *badger.Item
 		if item, err = txn.Get(k); err != nil {
 			if errors.Is(err, badger.ErrKeyNotFound) {
@@ -66,7 +69,7 @@ func Get[K, V any](key K, ttl ...int64) (value V, exists bool, err error) {
 		}
 
 		if err = item.Value(func(val []byte) (err error) {
-			if ttl != nil && len(ttl) > 0 {
+			if rw {
 				entry := badger.NewEntry(k, val).WithTTL(time.Duration(ttl[0]) * time.Millisecond)
 				if err = txn.SetEntry(entry); err != nil {
 					log.Println(err)
@@ -86,10 +89,26 @@ func Get[K, V any](key K, ttl ...int64) (value V, exists bool, err error) {
 			return
 		}
 		return
-	}); err != nil {
-		log.Println(err)
-		return
 	}
+
+	if rw {
+		//读写
+		if err = db.Update(func(txn *badger.Txn) (err error) {
+			return getFunc(txn)
+		}); err != nil {
+			log.Println(err)
+			return
+		}
+	} else {
+		//只读
+		if err = db.View(func(txn *badger.Txn) (err error) {
+			return getFunc(txn)
+		}); err != nil {
+			log.Println(err)
+			return
+		}
+	}
+
 	return
 }
 
@@ -123,7 +142,10 @@ func Exists[K any](key K, ttl ...int64) (exists bool, err error) {
 	}
 
 	exists = true
-	if err = db.View(func(txn *badger.Txn) (err error) {
+	//有续期，则要读写
+	rw := ttl != nil && len(ttl) > 0
+
+	existsFunc := func(txn *badger.Txn) (err error) {
 		var item *badger.Item
 		if item, err = txn.Get(k); err != nil {
 			if errors.Is(err, badger.ErrKeyNotFound) {
@@ -134,7 +156,7 @@ func Exists[K any](key K, ttl ...int64) (exists bool, err error) {
 			log.Println(err)
 			return
 		}
-		if ttl != nil && len(ttl) > 0 {
+		if rw {
 			if err = item.Value(func(val []byte) (err error) {
 				entry := badger.NewEntry(k, val).WithTTL(time.Duration(ttl[0]) * time.Millisecond)
 				if err = txn.SetEntry(entry); err != nil {
@@ -148,9 +170,24 @@ func Exists[K any](key K, ttl ...int64) (exists bool, err error) {
 			}
 		}
 		return
-	}); err != nil {
-		log.Println(err)
-		return
+	}
+
+	if rw {
+		//读写
+		if err = db.Update(func(txn *badger.Txn) (err error) {
+			return existsFunc(txn)
+		}); err != nil {
+			log.Println(err)
+			return
+		}
+	} else {
+		//只读
+		if err = db.View(func(txn *badger.Txn) (err error) {
+			return existsFunc(txn)
+		}); err != nil {
+			log.Println(err)
+			return
+		}
 	}
 	return
 }

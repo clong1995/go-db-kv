@@ -29,23 +29,26 @@ func Storage[K, V any](key K, fn func() (value V, err error), ttl ...int64) (val
 
 	// 使用singleflight执行昂贵操作
 	result, err, _ := sf.Do(fmt.Sprintf("%#v", key), func() (value any, err error) {
-		if value, exists, err = Get[K, V](key, ttl...); err != nil {
+		v, es, err := Get[K, V](key, ttl...)
+		if err != nil {
 			log.Println(err)
 			return
 		}
-
-		if exists {
+		if es {
+			value = v
 			return
 		}
 
 		// 执行耗时操作
-		if value, err = fn(); err != nil {
+		if v, err = fn(); err != nil {
 			log.Println(err)
 			return
 		}
 
+		value = v
+
 		//存储
-		if err = Set[K, V](key, value, ttl...); err != nil {
+		if err = Set[K, V](key, v, ttl...); err != nil {
 			log.Println(err)
 			return
 		}
