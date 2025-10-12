@@ -28,7 +28,7 @@ func Set[K, V any](key K, value V, ttl ...int64) (err error) {
 	if err = db.Update(func(txn *badger.Txn) (err error) {
 		entry := badger.NewEntry(k, v)
 		if ttl != nil && len(ttl) > 0 {
-			entry.WithTTL(time.Duration(ttl[0]) * time.Second)
+			entry.WithTTL(time.Duration(ttl[0]) * time.Millisecond)
 		}
 		if err = txn.SetEntry(entry); err != nil {
 			log.Println(err)
@@ -67,7 +67,7 @@ func Get[K, V any](key K, ttl ...int64) (value V, exists bool, err error) {
 
 		if err = item.Value(func(val []byte) (err error) {
 			if ttl != nil && len(ttl) > 0 {
-				entry := badger.NewEntry(k, val).WithTTL(time.Duration(ttl[0]) * time.Second)
+				entry := badger.NewEntry(k, val).WithTTL(time.Duration(ttl[0]) * time.Millisecond)
 				if err = txn.SetEntry(entry); err != nil {
 					log.Println(err)
 					return
@@ -136,7 +136,7 @@ func Exists[K any](key K, ttl ...int64) (exists bool, err error) {
 		}
 		if ttl != nil && len(ttl) > 0 {
 			if err = item.Value(func(val []byte) (err error) {
-				entry := badger.NewEntry(k, val).WithTTL(time.Duration(ttl[0]) * time.Second)
+				entry := badger.NewEntry(k, val).WithTTL(time.Duration(ttl[0]) * time.Millisecond)
 				if err = txn.SetEntry(entry); err != nil {
 					log.Println(err)
 					return
