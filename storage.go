@@ -59,8 +59,6 @@ func Storage[K, V any](key K, fn func() (value V, err error), ttl ...int64) (val
 		return
 	}
 	if result == nil {
-		err = errors.New("unexpected nil result")
-		log.Println(err)
 		return
 	}
 
