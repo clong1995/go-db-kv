@@ -14,6 +14,7 @@ import (
 var db *badger.DB
 
 func init() {
+	pcolor.SetPrefix("kv")
 	cachePath := config.Value("CACHE PATH")
 	if cachePath == "./" {
 		exePath, err := os.Executable()
@@ -30,5 +31,9 @@ func init() {
 	if db, err = badger.Open(opt); err != nil {
 		pcolor.PrintFatal(err.Error())
 	}
-	pcolor.PrintSucc("conn %v", cachePath)
+	if cachePath == "" {
+		pcolor.PrintSucc("conn in memory")
+	} else {
+		pcolor.PrintSucc("conn %v", cachePath)
+	}
 }
