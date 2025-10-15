@@ -26,6 +26,7 @@ func init() {
 	}
 	var err error
 	opt := badger.DefaultOptions(cachePath).WithInMemory(cachePath == "")
+	opt.Logger = nullLogger{}
 	if db, err = badger.Open(opt); err != nil {
 		pcolor.PrintFatal(err.Error())
 	}
