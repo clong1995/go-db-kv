@@ -5,7 +5,7 @@ go 1.25
 require (
 	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/clong1995/go-ansi-color v0.0.0-20251016014428-61ea4bba5de6
-	github.com/clong1995/go-config v0.0.0-20251015172612-ff975190cb1d
+	github.com/clong1995/go-config v0.0.0-20251016024738-1d0e21986853
 	github.com/dgraph-io/badger/v4 v4.8.0
 	golang.org/x/sync v0.17.0
 )
