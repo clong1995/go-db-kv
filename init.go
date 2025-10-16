@@ -38,3 +38,13 @@ func init() {
 		pcolor.PrintSucc(prefix, "conn %v", cachePath)
 	}
 }
+
+// Close 关闭
+func Close() (err error) {
+	if err = db.Close(); err != nil {
+		log.Println(err)
+		return
+	}
+	pcolor.PrintSucc(prefix, "conn closed")
+	return
+}

@@ -201,15 +201,6 @@ func Drop() (err error) {
 	return
 }
 
-// Close 关闭
-func Close() (err error) {
-	if err = db.Close(); err != nil {
-		log.Println(err)
-		return
-	}
-	return
-}
-
 func HashKey(text string) (buf []byte) {
 	n := xxhash.Sum64String(text)
 	buf = make([]byte, 8)
