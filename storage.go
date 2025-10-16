@@ -15,12 +15,22 @@ import (
 
 var sf singleflight.Group
 
-// Storage 存在返回不存在存储
+// Storage 存在返回不存在存储, ttl的第二个值，0:一直续期，1:仅仅创建的时候设置有效期
 func Storage[K, V any](key K, fn func() (value V, err error), ttl ...int64) (value V, err error) {
-	value, exists, err := Get[K, V](key, ttl...)
-	if err != nil {
-		log.Println(err)
-		return
+	var exists bool
+	if len(ttl) == 2 {
+		if ttl[1] == 0 { //一直续期
+			if value, exists, err = Get[K, V](key, ttl...); err != nil {
+				log.Println(err)
+				return
+			}
+		} else {
+			//仅仅创建的时候设置有效期,即获取的时候不续期
+			if value, exists, err = Get[K, V](key); err != nil {
+				log.Println(err)
+				return
+			}
+		}
 	}
 
 	if exists {
