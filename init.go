@@ -12,9 +12,9 @@ import (
 )
 
 var db *badger.DB
+var prefix = "kv"
 
 func init() {
-	pcolor.SetPrefix("kv")
 	cachePath := config.Value("CACHE PATH")
 	if cachePath == "./" {
 		exePath, err := os.Executable()
@@ -29,11 +29,12 @@ func init() {
 	opt := badger.DefaultOptions(cachePath).WithInMemory(cachePath == "")
 	opt.Logger = nullLogger{}
 	if db, err = badger.Open(opt); err != nil {
-		pcolor.PrintFatal(err.Error())
+		pcolor.PrintFatal(prefix, err.Error())
+		return
 	}
 	if cachePath == "" {
-		pcolor.PrintSucc("conn in memory")
+		pcolor.PrintSucc(prefix, "conn in memory")
 	} else {
-		pcolor.PrintSucc("conn %v", cachePath)
+		pcolor.PrintSucc(prefix, "conn %v", cachePath)
 	}
 }
