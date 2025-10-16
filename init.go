@@ -40,9 +40,9 @@ func init() {
 }
 
 // Close 关闭
-func Close() (err error) {
-	if err = db.Close(); err != nil {
-		log.Println(err)
+func Close() {
+	if err := db.Close(); err != nil {
+		pcolor.PrintError(prefix, err.Error())
 		return
 	}
 	pcolor.PrintSucc(prefix, "conn closed")
