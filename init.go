@@ -15,7 +15,7 @@ var db *badger.DB
 var prefix = "kv"
 
 func init() {
-	cachePath := config.Value("CACHE PATH")
+	cachePath, _ := config.Value[string]("CACHE PATH")
 	if cachePath == "./" {
 		exePath, err := os.Executable()
 		if err != nil {
