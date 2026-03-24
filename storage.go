@@ -1,8 +1,9 @@
 package kv
 
 import (
-	"errors"
 	"fmt"
+
+	"github.com/pkg/errors"
 
 	"golang.org/x/sync/singleflight"
 )

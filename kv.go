@@ -2,8 +2,9 @@ package kv
 
 import (
 	"encoding/binary"
-	"errors"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/dgraph-io/badger/v4"
