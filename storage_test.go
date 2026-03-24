@@ -1,81 +1,76 @@
 package kv
 
 import (
+	"reflect"
+	"sync"
+	"sync/atomic"
 	"testing"
 )
 
 func TestStorage(t *testing.T) {
-	type args[K any, V any] struct {
-		key K
-		fn  func() (value V, err error)
-		ttl []int64
+	key := "storage_key"
+	value := "storage_value"
+	var callCount int32
+
+	fn := func() (string, error) {
+		atomic.AddInt32(&callCount, 1)
+		return value, nil
 	}
-	type testCase[K any, V any] struct {
-		name      string
-		args      args[K, V]
-		wantValue V
-		wantErr   bool
+
+	// First call, should execute fn
+	gotValue, err := Storage(key, fn)
+	if err != nil {
+		t.Fatalf("Storage() error = %v", err)
 	}
-	tests := []testCase[int64, string]{
-		{
-			name: "storage",
-			args: args[int64, string]{
-				key: 123,
-				fn: func() (value string, err error) {
-					t.Log("耗时方法")
-					value = "abc"
-					return
-				},
-				ttl: []int64{30000},
-			},
-		},
+	if !reflect.DeepEqual(gotValue, value) {
+		t.Errorf("Storage() gotValue = %v, want %v", gotValue, value)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotValue, err := Storage(tt.args.key, tt.args.fn, tt.args.ttl...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Storage() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			t.Logf("Storage() gotValue = %v", gotValue)
-		})
+	if atomic.LoadInt32(&callCount) != 1 {
+		t.Errorf("fn should be called once, but was called %d times", callCount)
+	}
+
+	// Second call, should not execute fn
+	gotValue, err = Storage(key, fn)
+	if err != nil {
+		t.Fatalf("Storage() error = %v", err)
+	}
+	if !reflect.DeepEqual(gotValue, value) {
+		t.Errorf("Storage() gotValue = %v, want %v", gotValue, value)
+	}
+	if atomic.LoadInt32(&callCount) != 1 {
+		t.Errorf("fn should not be called again, but was called %d times", callCount)
 	}
 }
 
-func TestStorage1(t *testing.T) {
-	type args[K any, V any] struct {
-		key K
-		fn  func() (value V, err error)
-		ttl []int64
+func TestStorage_SingleFlight(t *testing.T) {
+	key := "storage_key_sf"
+	value := "storage_value_sf"
+	var callCount int32
+
+	fn := func() (string, error) {
+		atomic.AddInt32(&callCount, 1)
+		return value, nil
 	}
-	type testCase[K any, V any] struct {
-		name      string
-		args      args[K, V]
-		wantValue V
-		wantErr   bool
-	}
-	tests := []testCase[int64, any]{
-		{
-			name: "storage1",
-			args: args[int64, any]{
-				key: 123,
-				fn: func() (value any, err error) {
-					t.Log("耗时方法")
-					value = nil
-					return
-				},
-				ttl: []int64{30000},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotValue, err := Storage(tt.args.key, tt.args.fn, tt.args.ttl...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Storage() error = %v, wantErr %v", err, tt.wantErr)
+
+	// Use a WaitGroup to run multiple goroutines concurrently
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			gotValue, err := Storage(key, fn)
+			if err != nil {
+				t.Errorf("Storage() error = %v", err)
 				return
 			}
-			t.Logf("Storage() gotValue = %v", gotValue)
-		})
+			if !reflect.DeepEqual(gotValue, value) {
+				t.Errorf("Storage() gotValue = %v, want %v", gotValue, value)
+			}
+		}()
+	}
+	wg.Wait()
+
+	if atomic.LoadInt32(&callCount) != 1 {
+		t.Errorf("fn should be called only once due to singleflight, but was called %d times", callCount)
 	}
 }

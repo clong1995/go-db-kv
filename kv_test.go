@@ -1,191 +1,99 @@
 package kv
 
 import (
+	"reflect"
 	"testing"
+	"time"
 )
 
-func TestSet(t *testing.T) {
-	type args[K any, V any] struct {
-		key   K
-		value V
-		ttl   []int64
+func TestSetAndGet(t *testing.T) {
+	key := "test_key"
+	value := "test_value"
+
+	if err := Set(key, value); err != nil {
+		t.Fatalf("Set() error = %v", err)
 	}
-	type testCase[K any, V any] struct {
-		name    string
-		args    args[K, V]
-		wantErr bool
+
+	gotValue, exists, err := Get[string, string](key)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
 	}
-	tests := []testCase[int64, string]{
-		{
-			name: "set",
-			args: args[int64, string]{
-				key:   123,
-				value: "abc",
-				ttl:   []int64{30000},
-			},
-		},
+	if !exists {
+		t.Fatalf("Get() key not found")
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := Set(tt.args.key, tt.args.value, tt.args.ttl...); (err != nil) != tt.wantErr {
-				t.Errorf("Set() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+	if !reflect.DeepEqual(gotValue, value) {
+		t.Errorf("Get() gotValue = %v, want %v", gotValue, value)
 	}
 }
 
-func TestSet1(t *testing.T) {
-	type args[K any, V any] struct {
-		key   K
-		value V
-		ttl   []int64
+func TestSetWithTTL(t *testing.T) {
+	key := "test_key_ttl"
+	value := "test_value_ttl"
+	ttl := int64(1000) // 1 second
+
+	if err := Set(key, value, ttl); err != nil {
+		t.Fatalf("Set() with ttl error = %v", err)
 	}
-	type testCase[K any, V any] struct {
-		name    string
-		args    args[K, V]
-		wantErr bool
+
+	// Check if the key exists immediately
+	exists, err := Exists(key)
+	if err != nil {
+		t.Fatalf("Exists() error = %v", err)
 	}
-	tests := []testCase[int64, any]{
-		{
-			name: "set1",
-			args: args[int64, any]{
-				key:   123,
-				value: nil,
-			},
-		},
+	if !exists {
+		t.Fatalf("Exists() key should exist immediately after setting with TTL")
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := Set(tt.args.key, tt.args.value, tt.args.ttl...); (err != nil) != tt.wantErr {
-				t.Errorf("Set() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+
+	// Wait for the TTL to expire
+	time.Sleep(time.Duration(ttl) * time.Millisecond)
+
+	// Check if the key has expired
+	exists, err = Exists(key)
+	if err != nil {
+		t.Fatalf("Exists() error = %v", err)
+	}
+	if exists {
+		t.Fatalf("Exists() key should have expired")
 	}
 }
 
-func TestGet(t *testing.T) {
-	type args[K any] struct {
-		key K
-		ttl []int64
-	}
-	type testCase[K any, V any] struct {
-		name       string
-		args       args[K]
-		wantValue  V
-		wantExists bool
-		wantErr    bool
-	}
-	tests := []testCase[int64, string]{
-		{
-			name: "get",
-			args: args[int64]{
-				key: 123,
-				//ttl: []int64{30000},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotValue, gotExists, err := Get[int64, string](tt.args.key, tt.args.ttl...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			t.Logf("Get() gotValue = %v", gotValue)
-			t.Logf("Get() gotExists = %v", gotExists)
+func TestDelete(t *testing.T) {
+	key := "test_key_delete"
+	value := "test_value_delete"
 
-		})
+	if err := Set(key, value); err != nil {
+		t.Fatalf("Set() error = %v", err)
+	}
+
+	if err := Del(key); err != nil {
+		t.Fatalf("Del() error = %v", err)
+	}
+
+	exists, err := Exists(key)
+	if err != nil {
+		t.Fatalf("Exists() error = %v", err)
+	}
+	if exists {
+		t.Fatalf("Del() key should be deleted")
 	}
 }
 
-func TestGet1(t *testing.T) {
-	type args[K any] struct {
-		key K
-		ttl []int64
-	}
-	type testCase[K any, V any] struct {
-		name       string
-		args       args[K]
-		wantValue  V
-		wantExists bool
-		wantErr    bool
-	}
-	tests := []testCase[int64, any]{
-		{
-			name: "get1",
-			args: args[int64]{
-				key: 123,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotValue, gotExists, err := Get[int64, any](tt.args.key, tt.args.ttl...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			t.Logf("Get() gotValue = %v", gotValue)
-			t.Logf("Get() gotExists = %v", gotExists)
+func TestNilValue(t *testing.T) {
+	key := "test_key_nil"
+	var value *string
 
-		})
+	if err := Set(key, value); err != nil {
+		t.Fatalf("Set() with nil value error = %v", err)
 	}
-}
 
-func TestDel(t *testing.T) {
-	type args[K any] struct {
-		key K
+	gotValue, exists, err := Get[string, *string](key)
+	if err != nil {
+		t.Fatalf("Get() with nil value error = %v", err)
 	}
-	type testCase[K any] struct {
-		name    string
-		args    args[K]
-		wantErr bool
+	if !exists {
+		t.Fatalf("Get() with nil value key not found")
 	}
-	tests := []testCase[int64]{
-		{
-			name: "del",
-			args: args[int64]{
-				key: 123,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := Del(tt.args.key); (err != nil) != tt.wantErr {
-				t.Errorf("Del() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestExists(t *testing.T) {
-	type args[K any] struct {
-		key K
-		ttl []int64
-	}
-	type testCase[K any] struct {
-		name       string
-		args       args[K]
-		wantExists bool
-		wantErr    bool
-	}
-	tests := []testCase[int64]{
-		{
-			name: "exists",
-			args: args[int64]{
-				key: 123,
-				//ttl: []int64{30000},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotExists, err := Exists(tt.args.key, tt.args.ttl...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Exists() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			t.Logf("Exists() gotExists = %v", gotExists)
-		})
+	if gotValue != nil {
+		t.Errorf("Get() with nil value gotValue = %v, want nil", gotValue)
 	}
 }
