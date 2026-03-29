@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/clong1995/go-ansi-color"
-	"github.com/clong1995/go-config"
 	"github.com/dgraph-io/badger/v4"
 )
 
@@ -23,7 +22,6 @@ var prefix = "kv"
 // 如果路径为空字符串，则使用内存模式。
 func init() {
 	// 从配置中读取缓存路径。
-	cachePath, _ := config.Value[string]("CACHE PATH")
 	// 如果路径是 "./"，则解析为当前可执行文件的目录。
 	if cachePath == "./" {
 		exePath, err := os.Executable()
@@ -57,7 +55,7 @@ func init() {
 // 在程序退出前调用此函数是很好的做法，以确保所有数据都被正确写入磁盘。
 func Close() {
 	if err := db.Close(); err != nil {
-		pcolor.PrintError(prefix, err.Error())
+		pcolor.PrintError(prefix, err)
 		return
 	}
 	pcolor.PrintSucc(prefix, "conn closed")
