@@ -4,8 +4,8 @@ go 1.26
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0
-	github.com/clong1995/go-ansi-color v0.0.0-20260329160324-213fff2ee7eb
-	github.com/clong1995/go-config v0.0.0-20260410163819-3bbb4da18a0a
+	github.com/clong1995/go-ansi-color v0.0.0-20260410194334-5edd5923bf0d
+	github.com/clong1995/go-config v0.0.0-20260410194335-aa5b4968448a
 	github.com/dgraph-io/badger/v4 v4.9.1
 	github.com/pkg/errors v0.9.1
 	golang.org/x/sync v0.20.0
